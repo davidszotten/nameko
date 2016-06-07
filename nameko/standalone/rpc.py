@@ -22,7 +22,7 @@ _logger = logging.getLogger(__name__)
 
 
 class ConsumeEvent(object):
-    """ Event for the RPC consumer with the same interface as eventlet.Event.
+    """ Event for the RPC consumer with the same interface as gevent.Event.
     """
     exception = None
 

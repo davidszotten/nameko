@@ -1,9 +1,10 @@
 # coding: utf-8
 
-from eventlet import GreenPool, sleep
-from eventlet.event import Event
+from gevent import sleep
+from gevent.pool import Pool
 import pytest
 
+from nameko.compat import Event
 from nameko.containers import ServiceContainer
 from nameko.rpc import rpc, Rpc
 from nameko.utils import fail_fast_imap, get_redacted_args, REDACTED
@@ -29,7 +30,7 @@ def test_fail_fast_imap():
 
     calls = [slow_call, failing_call]
 
-    pool = GreenPool(2)
+    pool = Pool(2)
 
     # fail_fast_imap fails as soon as the exception is raised
     with pytest.raises(Exception) as raised_exc:

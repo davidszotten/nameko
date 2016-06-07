@@ -4,8 +4,8 @@ from collections import namedtuple
 from functools import partial
 from logging import getLogger
 
-from eventlet.event import Event
-from eventlet.websocket import WebSocketWSGI
+#  from gevent.websocket import WebSocketWSGI
+from nameko.compat import Event
 from nameko.exceptions import (
     ConnectionNotFound, MalformedRequest, MethodNotFound, serialize)
 from nameko.extensions import (

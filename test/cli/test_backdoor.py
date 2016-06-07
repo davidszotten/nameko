@@ -1,4 +1,4 @@
-import eventlet
+import gevent
 from mock import patch, DEFAULT
 import pytest
 
@@ -12,7 +12,7 @@ from nameko.exceptions import CommandError
 def running_backdoor():
     runner = object()
     green_socket, gt = setup_backdoor(runner, 0)
-    eventlet.sleep(0)  # give backdoor a chance to spawn
+    gevent.sleep(0)  # give backdoor a chance to spawn
     socket_name = green_socket.fd.getsockname()
     return socket_name
 

@@ -7,8 +7,7 @@ from functools import partial
 from logging import getLogger
 import socket
 
-import eventlet
-from eventlet.event import Event
+import gevent
 from kombu.common import maybe_declare
 from kombu.pools import producers, connections
 from kombu import Connection
@@ -16,6 +15,7 @@ from kombu.mixins import ConsumerMixin
 import six
 
 from nameko.amqp import verify_amqp_uri
+from nameko.compat import Event
 from nameko.constants import (
     DEFAULT_RETRY_POLICY, AMQP_URI_CONFIG_KEY,
     SERIALIZER_CONFIG_KEY, DEFAULT_SERIALIZER)
@@ -312,7 +312,7 @@ class QueueConsumer(SharedExtension, ProviderCollector, ConsumerMixin):
             while messages:
                 msg = messages.pop()
                 msg.ack()
-                eventlet.sleep()
+                gevent.sleep()
 
         messages = self._pending_requeue_messages
         if messages:
@@ -320,7 +320,7 @@ class QueueConsumer(SharedExtension, ProviderCollector, ConsumerMixin):
             while messages:
                 msg = messages.pop()
                 msg.requeue()
-                eventlet.sleep()
+                gevent.sleep()
 
     @property
     def connection(self):

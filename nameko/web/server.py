@@ -1,12 +1,8 @@
 from collections import namedtuple
 from functools import partial
 import re
-import socket
-
-import eventlet
-from eventlet import wsgi
-from eventlet.support import get_errno
-from eventlet.wsgi import HttpProtocol, BaseHTTPServer, BROKEN_SOCK
+import gevent
+from gevent import wsgi
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import Map
 from werkzeug.wrappers import Request
@@ -30,24 +26,6 @@ def parse_address(address_string):
     address = match.group('address') or ''
     port = int(match.group('port'))
     return BindAddress(address, port)
-
-
-class HttpOnlyProtocol(HttpProtocol):
-    # identical to HttpProtocol.finish, except greenio.shutdown_safe
-    # is removed. it's only needed to ssl sockets which we don't support
-    # this is a workaround until
-    # https://bitbucket.org/eventlet/eventlet/pull-request/42
-    # or something like it lands
-    def finish(self):
-        try:
-            # patched in depending on python version; confuses pylint
-            # pylint: disable=E1101
-            BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
-        except socket.error as e:
-            # Broken pipe, connection reset by peer
-            if get_errno(e) not in BROKEN_SOCK:
-                raise
-        self.connection.close()
 
 
 class WebServer(ProviderCollector, SharedExtension):
@@ -80,11 +58,10 @@ class WebServer(ProviderCollector, SharedExtension):
         if not self._starting:
             self._starting = True
             self._wsgi_app = WsgiApp(self)
-            self._sock = eventlet.listen(self.bind_addr)
+            self._sock = gevent.listen(self.bind_addr)
             self._serv = wsgi.Server(self._sock,
                                      self._sock.getsockname(),
                                      self._wsgi_app,
-                                     protocol=HttpOnlyProtocol,
                                      debug=False)
             self._gt = self.container.spawn_managed_thread(
                 self.run, protected=True)

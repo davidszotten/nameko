@@ -2,8 +2,9 @@ import sys
 import inspect
 import re
 
-import eventlet
-from eventlet.queue import LightQueue
+import gevent
+from gevent.pool import Pool
+from gevent.queue import Queue
 import six
 
 REDACTED = "********"
@@ -106,19 +107,19 @@ def get_redacted_args(entrypoint, *args, **kwargs):
 def fail_fast_imap(pool, call, items):
     """ Run a function against each item in a given list, yielding each
     function result in turn, where the function call is handled in a
-    :class:`~eventlet.greenthread.GreenThread` spawned by the provided pool.
+    :class:`~gevent.greenthread.GreenThread` spawned by the provided pool.
 
     If any function raises an exception, all other ongoing threads are killed,
     and the exception is raised to the caller.
 
-    This function is similar to :meth:`~eventlet.greenpool.GreenPool.imap`.
+    This function is similar to :meth:`~gevent.greenpool.GreenPool.imap`.
 
     :param pool: Pool to spawn function threads from
-    :type pool: eventlet.greenpool.GreenPool
+    :type pool: gevent.greenpool.GreenPool
     :param call: Function call to make, expecting to receive an item from the
         given list
     """
-    result_queue = LightQueue(maxsize=len(items))
+    result_queue = Queue(maxsize=len(items))
     spawned_threads = set()
 
     def handle_result(finished_thread):
@@ -144,7 +145,7 @@ def fail_fast_imap(pool, call, items):
             # simply raising here (even raising a full exc_info) isn't
             # sufficient to preserve the original stack trace.
             # greenlet.throw() achieves this.
-            eventlet.getcurrent().throw(*exc_info)
+            gevent.getcurrent().throw(*exc_info)
         yield result
 
 
@@ -152,7 +153,7 @@ class SpawningProxy(object):
     def __init__(self, items, abort_on_error=False):
         """ Wraps an iterable set of items such that a call on the returned
         SpawningProxy instance will spawn a call in a
-        :class:`~eventlet.greenthread.GreenThread` for each item.
+        :class:`~gevent.greenthread.GreenThread` for each item.
 
         Returns when every spawned thread has completed.
 
@@ -169,7 +170,7 @@ class SpawningProxy(object):
         def spawning_method(*args, **kwargs):
             items = self._items
             if items:
-                pool = eventlet.GreenPool(len(items))
+                pool = Pool(len(items))
 
                 def call(item):
                     return getattr(item, name)(*args, **kwargs)

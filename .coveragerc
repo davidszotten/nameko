@@ -1,5 +1,5 @@
 [run]
-concurrency = eventlet
+concurrency = gevent
 parallel = true
 data_file = /tmp/.coverage
 

@@ -1,9 +1,9 @@
-import eventlet
-from eventlet.event import Event
+import gevent
 from mock import Mock, call, patch, ANY
 import pytest
 import uuid
 
+from nameko.compat import Event
 from nameko.events import event_handler
 from nameko.exceptions import RpcConnectionError
 from nameko.rpc import rpc, RpcProxy
@@ -138,7 +138,7 @@ def test_proxy_disconnect_with_active_worker(
     assert len(connections) == 2
 
     # disconnect proxyservice's queue consumer while its request is in-flight
-    eventlet.spawn(disconnect_on_event, rabbit_manager, proxy_consumer_conn)
+    gevent.spawn(disconnect_on_event, rabbit_manager, proxy_consumer_conn)
     with entrypoint_hook(proxy_container, 'retry') as retry:
         # if disconnecting while waiting for a reply, call fails
         # fail, then success
@@ -167,7 +167,7 @@ def test_service_disconnect_with_active_async_worker(
     queue_consumer_conn = connections[0]['name']
 
     # disconnect the service's queue consumer while it's running the worker
-    eventlet.spawn(disconnect_on_event, rabbit_manager, queue_consumer_conn)
+    gevent.spawn(disconnect_on_event, rabbit_manager, queue_consumer_conn)
 
     # dispatch an event
     data = uuid.uuid4().hex
@@ -210,7 +210,7 @@ def test_service_disconnect_with_active_rpc_worker(
     assert len(connections) == 2
 
     # disconnect the service's queue consumer while it's running a worker
-    eventlet.spawn(disconnect_on_event, rabbit_manager, queue_consumer_conn)
+    gevent.spawn(disconnect_on_event, rabbit_manager, queue_consumer_conn)
 
     # we should receive the response from the first call
     # the standalone RPC proxy will stop listening as soon as it receives
@@ -260,7 +260,7 @@ def test_service_disconnect_with_active_rpc_worker_via_service_proxy(
     assert len(connections) == 2
 
     # disconnect exampleservice's queue consumer while it's running the worker
-    eventlet.spawn(disconnect_on_event, rabbit_manager, service_consumer_conn)
+    gevent.spawn(disconnect_on_event, rabbit_manager, service_consumer_conn)
 
     # we should receive the response from the first call
     # the service rpc_proxy will receive and discard the response from the

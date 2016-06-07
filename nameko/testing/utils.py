@@ -4,7 +4,7 @@ Common testing utilities.
 from contextlib import contextmanager
 from functools import partial
 
-import eventlet
+import gevent
 from mock import Mock
 
 from nameko.containers import WorkerContextBase
@@ -46,22 +46,22 @@ def wait_for_call(timeout, mock_method):
     """ Return a context manager that waits ``timeout`` seconds for
     ``mock_method`` to be called, yielding the mock if so.
 
-    Raises an :class:`eventlet.Timeout` if the method was not called
+    Raises an :class:`gevent.Timeout` if the method was not called
     within ``timeout`` seconds.
     """
-    with eventlet.Timeout(timeout):
+    with gevent.Timeout(timeout):
         while not mock_method.called:
-            eventlet.sleep()
+            gevent.sleep()
     yield mock_method
 
 
 def wait_for_worker_idle(container, timeout=10):
     """ Blocks until ``container`` has no running workers.
 
-    Raises an :class:`eventlet.Timeout` if the method was not called
+    Raises an :class:`gevent.Timeout` if the method was not called
     within ``timeout`` seconds.
     """
-    with eventlet.Timeout(timeout):
+    with gevent.Timeout(timeout):
         container._worker_pool.waitall()
 
 
@@ -74,7 +74,7 @@ def assert_stops_raising(fn, exception_type=Exception, timeout=10,
        an instance of ``exception_type``. If not specified, any
        `:class:`Exception` instance is allowed.
     """
-    with eventlet.Timeout(timeout):
+    with gevent.Timeout(timeout):
         while True:
             try:
                 fn()
@@ -82,7 +82,7 @@ def assert_stops_raising(fn, exception_type=Exception, timeout=10,
                 pass
             else:
                 return
-            eventlet.sleep(interval)
+            gevent.sleep(interval)
 
 
 @contextmanager

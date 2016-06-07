@@ -1,6 +1,6 @@
 # start a runner with a service that errors. does it hang? or stop?
 # how do we get an individual servicecontainer to blow up?
-import eventlet
+import gevent
 from mock import patch
 import pytest
 
@@ -86,7 +86,7 @@ def test_handle_result_error(container_factory, rabbit_config):
             # proxy.task() will hang forever because it generates an error
             proxy.task.call_async()
 
-        with eventlet.Timeout(1):
+        with gevent.Timeout(1):
             with pytest.raises(Exception) as exc_info:
                 container.wait()
             assert str(exc_info.value) == err
@@ -111,7 +111,7 @@ def test_dependency_call_lifecycle_errors(
             proxy.task.call_async()
 
         # verify that the error bubbles up to container.wait()
-        with eventlet.Timeout(1):
+        with gevent.Timeout(1):
             with pytest.raises(Exception) as exc_info:
                 container.wait()
             assert str(exc_info.value) == err

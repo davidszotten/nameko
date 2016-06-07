@@ -1,4 +1,4 @@
-import eventlet
+import gevent
 from kombu.message import Message
 import pytest
 import socket
@@ -49,7 +49,7 @@ class FooService(object):
 
     @rpc
     def sleep(self, seconds=0):
-        eventlet.sleep(seconds)
+        gevent.sleep(seconds)
         return seconds
 
 
@@ -312,8 +312,8 @@ def test_no_timeout(
     container.start()
 
     with ServiceRpcProxy('foobar', rabbit_config) as proxy:
-        with pytest.raises(eventlet.Timeout):
-            with eventlet.Timeout(.1):
+        with pytest.raises(gevent.Timeout):
+            with gevent.Timeout(.1):
                 proxy.sleep(seconds=1)
 
 
@@ -329,7 +329,7 @@ def test_async_timeout(
             result.result()
 
         result = proxy.sleep.call_async(seconds=.2)
-        eventlet.sleep(.2)
+        gevent.sleep(.2)
         result.result()
 
 

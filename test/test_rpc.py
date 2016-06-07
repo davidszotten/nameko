@@ -1,11 +1,11 @@
 import uuid
 import warnings
 
-import eventlet
-from eventlet.event import Event
+import gevent
 from mock import patch, Mock, call
 import pytest
 
+from nameko.compat import Event
 from nameko.containers import (
     ServiceContainer, WorkerContextBase, NAMEKO_CONTEXT_KEYS)
 from nameko.extensions import DependencyProvider
@@ -616,7 +616,7 @@ def test_rpc_container_being_killed_retries(
         'rpc_consumer',
         wraps=rpc_provider.rpc_consumer,
     ) as wrapped_consumer:
-        waiter = eventlet.spawn(wait_for_result)
+        waiter = gevent.spawn(wait_for_result)
         with wait_for_call(1, wrapped_consumer.requeue_message):
             pass  # wait until at least one message has been requeued
         assert not waiter.dead
@@ -648,7 +648,7 @@ def test_rpc_consumer_sharing(container_factory, rabbit_config,
         task_a_stopped.send(True)
 
     def patched_task_b_stop():
-        eventlet.sleep(2)  # stop after 2 seconds
+        gevent.sleep(2)  # stop after 2 seconds
         task_b_stop()
 
     with patch.object(task_b, 'stop', patched_task_b_stop), \
@@ -656,14 +656,14 @@ def test_rpc_consumer_sharing(container_factory, rabbit_config,
 
         # stop the container and wait for task_a to stop
         # task_b will still be in the process of stopping
-        eventlet.spawn(container.stop)
+        gevent.spawn(container.stop)
         task_a_stopped.wait()
 
         # try to call task_a.
         # should timeout, rather than raising MethodNotFound
         with ServiceRpcProxy("exampleservice", rabbit_config) as proxy:
-            with pytest.raises(eventlet.Timeout):
-                with eventlet.Timeout(1):
+            with pytest.raises(gevent.Timeout):
+                with gevent.Timeout(1):
                     proxy.task_a()
 
     # kill the container so we don't have to wait for task_b to stop
@@ -680,11 +680,11 @@ def test_rpc_consumer_cannot_exit_with_providers(
 
     def never_stops():
         while True:
-            eventlet.sleep()
+            gevent.sleep()
 
     with patch.object(task_a, 'stop', never_stops):
-        with pytest.raises(eventlet.Timeout):
-            with eventlet.Timeout(1):
+        with pytest.raises(gevent.Timeout):
+            with gevent.Timeout(1):
                 container.stop()
 
     # kill off task_a's misbehaving rpc provider

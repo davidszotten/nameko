@@ -27,7 +27,7 @@ class ContainerBeingKilled(Exception):
     in the first place, e.g. an rpc consumer should probably requeue
     the message.
 
-    We need this because eventlet may yield during the execution of
+    We need this because gevent may yield during the execution of
     :meth:`Container.kill`, giving entrypoints a chance to fire before
     they themselves have been killed.
     """

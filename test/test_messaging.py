@@ -1,4 +1,4 @@
-import eventlet
+import gevent
 import pytest
 
 from kombu import Exchange, Queue
@@ -280,7 +280,7 @@ def test_publish_to_rabbit(rabbit_manager, rabbit_config, mock_container):
     container = mock_container
     container.service_name = "service"
     container.config = rabbit_config
-    container.spawn_managed_thread = eventlet.spawn
+    container.spawn_managed_thread = gevent.spawn
 
     ctx_data = {'language': 'en', 'customheader': 'customvalue'}
     service = Mock()
@@ -324,7 +324,7 @@ def test_unserialisable_headers(rabbit_manager, rabbit_config, mock_container):
     container = mock_container
     container.service_name = "service"
     container.config = rabbit_config
-    container.spawn_managed_thread = eventlet.spawn
+    container.spawn_managed_thread = gevent.spawn
 
     ctx_data = {'language': 'en', 'customheader': None}
     service = Mock()
@@ -363,7 +363,7 @@ def test_consume_from_rabbit(rabbit_manager, rabbit_config, mock_container):
     container.accept = [content_type]
 
     def spawn_thread(method, protected):
-        return eventlet.spawn(method)
+        return gevent.spawn(method)
     container.spawn_managed_thread = spawn_thread
 
     worker_ctx = CustomWorkerContext(container, None, DummyProvider())
@@ -409,7 +409,7 @@ def test_consume_from_rabbit(rabbit_manager, rabbit_config, mock_container):
     handle_result(worker_ctx, 'result')
 
     # stop will hang if the consumer hasn't acked or requeued messages
-    with eventlet.timeout.Timeout(CONSUME_TIMEOUT):
+    with gevent.timeout.Timeout(CONSUME_TIMEOUT):
         consumer.stop()
 
     consumer.queue_consumer.kill()

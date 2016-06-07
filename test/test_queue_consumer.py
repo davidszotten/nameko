@@ -1,13 +1,13 @@
 import socket
 import uuid
 
-import eventlet
+import gevent
 import pytest
-from eventlet.event import Event
 from kombu import Connection, Exchange, Queue
 from kombu.exceptions import TimeoutError
 from mock import ANY, call, Mock, patch
 
+from nameko.compat import Event
 from nameko.constants import AMQP_URI_CONFIG_KEY
 from nameko.messaging import QueueConsumer
 from nameko.rpc import rpc, RpcConsumer
@@ -41,7 +41,7 @@ class MessageHandler(object):
 
 
 def spawn_thread(method, protected):
-    return eventlet.spawn(method)
+    return gevent.spawn(method)
 
 
 def test_lifecycle(rabbit_manager, rabbit_config, mock_container):
@@ -72,12 +72,12 @@ def test_lifecycle(rabbit_manager, rabbit_config, mock_container):
 
     message = handler.wait()
 
-    gt = eventlet.spawn(queue_consumer.unregister_provider, handler)
+    gt = gevent.spawn(queue_consumer.unregister_provider, handler)
 
     # wait for the handler to be removed
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         while len(queue_consumer._consumers):
-            eventlet.sleep()
+            gevent.sleep()
 
     # remove_consumer has to wait for all messages to be acked
     assert not gt.dead
@@ -87,7 +87,7 @@ def test_lifecycle(rabbit_manager, rabbit_config, mock_container):
 
     # this should cause the consumer to finish shutting down
     queue_consumer.ack_message(message)
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         gt.wait()
 
     # there should be a message left on the queue
@@ -141,26 +141,26 @@ def test_stop_while_starting(rabbit_config, mock_container):
     handler = MessageHandler()
     queue_consumer.register_provider(handler)
 
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         with patch.object(Connection, 'connect', autospec=True) as connect:
             # patch connection to raise an error
             connect.side_effect = TimeoutError('test')
             # try to start the queue consumer
-            gt = eventlet.spawn(queue_consumer.start)
+            gt = gevent.spawn(queue_consumer.start)
             # wait for the queue consumer to begin starting and
             # then immediately stop it
             started.wait()
 
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         queue_consumer.unregister_provider(handler)
         queue_consumer.stop()
 
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         # we expect the queue_consumer.start thread to finish
         # almost immediately adn when it does the queue_consumer thread
         # should be dead too
         while not gt.dead:
-            eventlet.sleep()
+            gevent.sleep()
 
         assert queue_consumer._gt.dead
 
@@ -178,7 +178,7 @@ def test_error_stops_consumer_thread(mock_container):
     handler = MessageHandler()
     queue_consumer.register_provider(handler)
 
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         with patch.object(
                 Connection, 'drain_events', autospec=True) as drain_events:
             drain_events.side_effect = Exception('test')
@@ -302,9 +302,9 @@ def test_prefetch_count(rabbit_manager, rabbit_config, mock_container):
     rabbit_manager.publish(vhost, 'spam', '', 'bacon',
                            properties=dict(content_type=content_type))
 
-    with eventlet.Timeout(TIMEOUT):
+    with gevent.Timeout(TIMEOUT):
         while len(messages) < 2:
-            eventlet.sleep()
+            gevent.sleep()
 
     # allow the waiting consumer to ack its message
     consumer_continue.send(None)
@@ -374,7 +374,7 @@ def test_greenthread_raise_in_kill(container_factory, rabbit_config, logger):
 
         with ServiceRpcProxy('service', rabbit_config) as service_rpc:
             # spawn because `echo` will never respond
-            eventlet.spawn(service_rpc.echo, "foo")
+            gevent.spawn(service_rpc.echo, "foo")
 
     # container will have died with the messaging handling error
     with pytest.raises(Exception) as exc_info:

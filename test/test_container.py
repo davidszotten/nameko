@@ -2,13 +2,13 @@
 
 import sys
 
-import eventlet
-from eventlet import spawn, sleep, Timeout
-from eventlet.event import Event
+import gevent
+from gevent import spawn, sleep, Timeout
 import greenlet
 from mock import patch, call, ANY, Mock
 import pytest
 
+from nameko.compat import Event
 from nameko.containers import ServiceContainer, get_service_name
 from nameko.constants import MAX_WORKERS_CONFIG_KEY
 from nameko.exceptions import ConfigurationError
@@ -395,7 +395,7 @@ def test_container_only_killed_once(container):
             container, '_kill_active_threads', autospec=True) as kill_threads:
 
         with patch.object(container, 'kill', wraps=container.kill) as kill:
-            # insert an eventlet yield into the kill process, otherwise
+            # insert an gevent yield into the kill process, otherwise
             # the container dies before the second exception gets raised
             kill.side_effect = lambda exc: sleep()
 
@@ -511,8 +511,8 @@ def test_stop_during_kill(container, logger):
     with patch.object(
             container, '_kill_active_threads', autospec=True) as kill_threads:
 
-        # force eventlet yield during kill() so stop() will be scheduled
-        kill_threads.side_effect = eventlet.sleep
+        # force gevent yield during kill() so stop() will be scheduled
+        kill_threads.side_effect = gevent.sleep
 
         # manufacture an exc_info to kill with
         try:
@@ -520,8 +520,8 @@ def test_stop_during_kill(container, logger):
         except:
             exc_info = sys.exc_info()
 
-        eventlet.spawn(container.kill, exc_info)
-        eventlet.spawn(container.stop)
+        gevent.spawn(container.kill, exc_info)
+        gevent.spawn(container.stop)
 
         with pytest.raises(Exception):
             container.wait()

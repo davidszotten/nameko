@@ -6,9 +6,8 @@ from logging import getLogger
 import sys
 import uuid
 
-import eventlet
-from eventlet.event import Event
-from eventlet.greenpool import GreenPool
+import gevent
+from gevent.pool import Pool
 from greenlet import GreenletExit  # pylint: disable=E0611
 import six
 
@@ -18,6 +17,7 @@ from nameko.constants import (
     SERIALIZER_CONFIG_KEY, DEFAULT_SERIALIZER,
     CALL_ID_STACK_CONTEXT_KEY, NAMEKO_CONTEXT_KEYS)
 
+from nameko.compat import Event
 from nameko.extensions import (
     is_dependency, ENTRYPOINT_EXTENSIONS_ATTR, iter_extensions)
 from nameko.exceptions import ContainerBeingKilled, ConfigurationError
@@ -169,7 +169,7 @@ class ServiceContainer(object):
                 self.subextensions.update(iter_extensions(bound))
 
         self.started = False
-        self._worker_pool = GreenPool(size=self.max_workers)
+        self._worker_pool = Pool(size=self.max_workers)
 
         self._active_threads = {}
         self._protected_threads = set()
@@ -380,7 +380,7 @@ class ServiceContainer(object):
 
         Extensions should delegate all thread spawning to the container.
         """
-        gt = eventlet.spawn(run_method)
+        gt = gevent.spawn(run_method)
         if not protected:
             self._active_threads[gt] = MANAGED_THREAD
         else:
@@ -475,7 +475,7 @@ class ServiceContainer(object):
         self._protected_threads.discard(gt)
 
         try:
-            gt.wait()
+            gt.get()
 
         except GreenletExit:
             # we don't care much about threads killed by the container

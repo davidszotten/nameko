@@ -5,9 +5,9 @@ import json
 
 from collections import defaultdict
 
-from eventlet.event import Event
-from eventlet.queue import Queue
+from gevent.queue import Queue
 
+from nameko.compat import Event
 from nameko.exceptions import deserialize
 
 

@@ -6,8 +6,7 @@ from logging import getLogger
 import types
 import weakref
 
-from eventlet.event import Event
-
+from nameko.compat import Event
 from nameko.exceptions import IncorrectSignature
 
 _log = getLogger(__name__)

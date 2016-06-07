@@ -1,4 +1,4 @@
-import eventlet
+import gevent
 import pytest
 
 from nameko.events import BROADCAST, event_handler
@@ -204,9 +204,9 @@ def test_multiple_runners_coexist(runner_factory, rabbit_config,
     dispatch = event_dispatcher(rabbit_config)
     dispatch('srcservice', "testevent", event_data)
 
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         while len(received) < 2:
-            eventlet.sleep()
+            gevent.sleep()
 
         assert received == [event_data, event_data]
 
@@ -220,9 +220,9 @@ def test_multiple_runners_coexist(runner_factory, rabbit_config,
     with ServiceRpcProxy('service', rabbit_config) as proxy:
         proxy.handle(arg)
 
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         while len(received) == 0:
-            eventlet.sleep()
+            gevent.sleep()
 
         assert received == [arg]
 
@@ -243,9 +243,9 @@ def test_runner_with_duplicate_services(runner_factory, rabbit_config):
     dispatch = event_dispatcher(rabbit_config)
     dispatch('srcservice', 'testevent', event_data)
 
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         while len(received) == 0:
-            eventlet.sleep()
+            gevent.sleep()
 
         assert received == [event_data]
 
@@ -256,9 +256,9 @@ def test_runner_with_duplicate_services(runner_factory, rabbit_config):
     with ServiceRpcProxy("service", rabbit_config) as proxy:
         proxy.handle(arg)
 
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         while len(received) == 0:
-            eventlet.sleep()
+            gevent.sleep()
 
         assert received == [arg]
 

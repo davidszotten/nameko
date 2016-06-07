@@ -5,8 +5,8 @@ specific service can be specified via ``nameko run module:ServiceClass``.  """
 
 from __future__ import print_function
 
-import eventlet
-eventlet.monkey_patch()  # noqa (code before rest of imports)
+from gevent import monkey
+monkey.patch_all()  # noqa (code before rest of imports)
 
 import errno
 import inspect
@@ -17,7 +17,8 @@ import signal
 import sys
 import yaml
 
-from eventlet import backdoor
+import gevent
+from gevent import backdoor
 
 from nameko.constants import AMQP_URI_CONFIG_KEY
 from nameko.exceptions import CommandError
@@ -28,6 +29,8 @@ from nameko.runners import ServiceRunner
 logger = logging.getLogger(__name__)
 
 MISSING_MODULE_TEMPLATE = "^No module named '?{}'?$"
+
+gevent.Greenlet.wait = gevent.Greenlet.get
 
 
 def is_type(obj):
@@ -102,8 +105,8 @@ def setup_backdoor(runner, port):
         raise RuntimeError(
             'This would kill your service, not close the backdoor. To exit, '
             'use ctrl-c.')
-    socket = eventlet.listen(('localhost', port))
-    gt = eventlet.spawn(
+    socket = gevent.listen(('localhost', port))
+    gt = gevent.spawn(
         backdoor.backdoor_server,
         socket,
         locals={
@@ -120,9 +123,9 @@ def run(services, config, backdoor_port=None):
         service_runner.add_service(service_cls)
 
     def shutdown(signum, frame):
-        # signal handlers are run by the MAINLOOP and cannot use eventlet
+        # signal handlers are run by the MAINLOOP and cannot use gevent
         # primitives, so we have to call `stop` in a greenlet
-        eventlet.spawn_n(service_runner.stop)
+        gevent.spawn_n(service_runner.stop)
 
     signal.signal(signal.SIGTERM, shutdown)
 
@@ -131,12 +134,12 @@ def run(services, config, backdoor_port=None):
 
     service_runner.start()
 
-    # if the signal handler fires while eventlet is waiting on a socket,
+    # if the signal handler fires while gevent is waiting on a socket,
     # the __main__ greenlet gets an OSError(4) "Interrupted system call".
-    # This is a side-effect of the eventlet hub mechanism. To protect nameko
+    # This is a side-effect of the gevent hub mechanism. To protect nameko
     # from seeing the exception, we wrap the runner.wait call in a greenlet
     # spawned here, so that we can catch (and silence) the exception.
-    runnlet = eventlet.spawn(service_runner.wait)
+    runnlet = gevent.spawn(service_runner.wait)
 
     while True:
         try:

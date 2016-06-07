@@ -1,9 +1,9 @@
-import eventlet
-from eventlet.event import Event
+import gevent
 from mock import Mock, patch, call
 import pytest
 from requests import Response, HTTPError
 
+from nameko.compat import Event
 from nameko.constants import DEFAULT_MAX_WORKERS
 from nameko.rpc import rpc, Rpc
 from nameko.testing.rabbit import Client
@@ -38,18 +38,18 @@ def test_wait_for_call():
     mock = Mock()
 
     def call_after(seconds):
-        eventlet.sleep(seconds)
+        gevent.sleep(seconds)
         mock.method()
 
     # should not raise
-    eventlet.spawn(call_after, 0)
+    gevent.spawn(call_after, 0)
     with wait_for_call(1, mock.method):
         pass
 
     mock.reset_mock()
 
-    with pytest.raises(eventlet.Timeout):
-        eventlet.spawn(call_after, 1)
+    with pytest.raises(gevent.Timeout):
+        gevent.spawn(call_after, 1)
         with wait_for_call(0, mock.method):
             pass
 
@@ -181,7 +181,7 @@ def test_wait_for_worker_idle(container_factory, rabbit_config):
 
     # verify nothing running
     assert container._worker_pool.free() == max_workers
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         wait_for_worker_idle(container)
 
     # spawn a worker
@@ -190,16 +190,16 @@ def test_wait_for_worker_idle(container_factory, rabbit_config):
 
     # verify that wait_for_worker_idle does not return while worker active
     assert container._worker_pool.free() == max_workers - 1
-    gt = eventlet.spawn(wait_for_worker_idle, container)
+    gt = gevent.spawn(wait_for_worker_idle, container)
     assert not gt.dead  # still waiting
 
     # verify that wait_for_worker_idle raises when it times out
-    with pytest.raises(eventlet.Timeout):
+    with pytest.raises(gevent.Timeout):
         wait_for_worker_idle(container, timeout=0)
 
     # complete the worker, verify previous wait_for_worker_idle completes
     event.send()
-    with eventlet.Timeout(1):
+    with gevent.Timeout(1):
         gt.wait()
     assert container._worker_pool.free() == max_workers
 

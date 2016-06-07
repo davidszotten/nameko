@@ -1,5 +1,5 @@
-import eventlet
-from eventlet import Timeout
+import gevent
+from gevent import Timeout
 
 from mock import Mock
 
@@ -11,7 +11,7 @@ from nameko.testing.utils import wait_for_call
 def test_provider():
     container = Mock(spec=ServiceContainer)
     container.service_name = "service"
-    container.spawn_managed_thread = eventlet.spawn
+    container.spawn_managed_thread = gevent.spawn
 
     timer = Timer(interval=0.1).bind(container, "method")
     timer.setup()
@@ -38,7 +38,7 @@ def test_stop_timer_immediatly():
     timer.setup()
     timer.start()
 
-    eventlet.sleep(0.1)
+    gevent.sleep(0.1)
     timer.stop()
 
     assert container.spawn_worker.call_count == 0
@@ -48,7 +48,7 @@ def test_stop_timer_immediatly():
 def test_kill_stops_timer():
     container = Mock(spec=ServiceContainer)
     container.service_name = "service"
-    container.spawn_managed_thread = eventlet.spawn
+    container.spawn_managed_thread = gevent.spawn
 
     timer = Timer(interval=0).bind(container, "method")
     timer.setup()
@@ -59,5 +59,5 @@ def test_kill_stops_timer():
 
     # unless the timer is dead, the following nap would cause a timer
     # to trigger
-    eventlet.sleep(0.1)
+    gevent.sleep(0.1)
     assert container.spawn_worker.call_count == 1

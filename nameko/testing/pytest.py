@@ -3,10 +3,10 @@ from __future__ import absolute_import
 import pytest
 
 
-# all imports are inline to make sure they happen after eventlet.monkey_patch
+# all imports are inline to make sure they happen after gevent.monkey_patch
 # which is called in pytest_load_initial_conftests
 # (calling monkey_patch at import time breaks the pytest capturemanager - see
-#  https://github.com/eventlet/eventlet/pull/239)
+#  https://github.com/gevent/gevent/pull/239)
 
 
 def pytest_addoption(parser):
@@ -15,7 +15,7 @@ def pytest_addoption(parser):
         action='store_true',
         dest='blocking_detection',
         default=False,
-        help='turn on eventlet hub blocking detection')
+        help='turn on gevent hub blocking detection')
 
     parser.addoption(
         "--log-level", action="store",
@@ -35,8 +35,8 @@ def pytest_addoption(parser):
 
 def pytest_load_initial_conftests():
     # make sure we monkey_patch before local conftests
-    import eventlet
-    eventlet.monkey_patch()
+    from gevent import monkey
+    monkey.patch_all()
 
 
 def pytest_configure(config):
@@ -44,7 +44,7 @@ def pytest_configure(config):
     import sys
 
     if config.option.blocking_detection:  # pragma: no cover
-        from eventlet import debug
+        from gevent import debug
         debug.hub_blocking_detection(True)
 
     log_level = config.getoption('log_level')
@@ -234,7 +234,7 @@ def web_session(web_config_port):
 
 @pytest.yield_fixture()
 def websocket(web_config_port):
-    import eventlet
+    import gevent
     from nameko.testing.websocket import make_virtual_socket
 
     active_sockets = []
@@ -242,7 +242,7 @@ def websocket(web_config_port):
     def socket_creator():
         ws_app, wait_for_sock = make_virtual_socket(
             '127.0.0.1', web_config_port)
-        gr = eventlet.spawn(ws_app.run_forever)
+        gr = gevent.spawn(ws_app.run_forever)
         active_sockets.append((gr, ws_app))
         return wait_for_sock()
 

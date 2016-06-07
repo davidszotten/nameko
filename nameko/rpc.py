@@ -6,12 +6,12 @@ import warnings
 from functools import partial
 from logging import getLogger
 
-from eventlet.event import Event
-from eventlet.queue import Empty
+from gevent.queue import Empty
 from kombu import Connection, Exchange, Queue
 from kombu.pools import producers
 import kombu.serialization
 
+from nameko.compat import Event
 from nameko.constants import (
     AMQP_URI_CONFIG_KEY, DEFAULT_RETRY_POLICY, RPC_EXCHANGE_CONFIG_KEY,
     SERIALIZER_CONFIG_KEY, DEFAULT_SERIALIZER)

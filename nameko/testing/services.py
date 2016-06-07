@@ -6,11 +6,11 @@ from collections import OrderedDict
 from contextlib import contextmanager
 import inspect
 
-import eventlet
-from eventlet import event
-from eventlet.semaphore import Semaphore
+import gevent
+from gevent.lock import Semaphore
 from mock import MagicMock
 
+from nameko.compat import Event
 from nameko.extensions import DependencyProvider, Entrypoint
 from nameko.exceptions import ExtensionNotFound
 from nameko.testing.utils import get_extension, wait_for_worker_idle
@@ -48,7 +48,7 @@ def entrypoint_hook(container, method_name, context_data=None):
                 method_name, container))
 
     def hook(*args, **kwargs):
-        result = event.Event()
+        result = Event()
 
         def handle_result(worker_ctx, res=None, exc_info=None):
             result.send(res, exc_info)
@@ -68,7 +68,7 @@ def entrypoint_hook(container, method_name, context_data=None):
             except Exception as exc:
                 result.send_exception(exc)
 
-        gt = eventlet.spawn(container.wait)
+        gt = gevent.spawn(container.wait)
         gt.link(catch_container_errors)
 
         return result.wait()
@@ -130,7 +130,7 @@ def entrypoint_waiter(container, entrypoint, timeout=30):
             "Entrypoint {}.{} failed to complete within {} seconds".format(
                 container.service_name, entrypoint, timeout)
         )
-        with eventlet.Timeout(timeout, exception=exc):
+        with gevent.Timeout(timeout, exception=exc):
             waiter.wait()
     finally:
         wait_for_worker_idle(container)

@@ -2,9 +2,9 @@ from __future__ import absolute_import
 from logging import getLogger
 import time
 
-from eventlet import Timeout
-from eventlet.event import Event
+from gevent import Timeout
 
+from nameko.compat import Event
 from nameko.extensions import Entrypoint
 
 _log = getLogger(__name__)

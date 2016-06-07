@@ -3,7 +3,7 @@ import os
 import signal
 import socket
 from os.path import join, dirname, abspath
-import eventlet
+import gevent
 from mock import patch
 import pytest
 
@@ -32,8 +32,8 @@ def test_run(rabbit_config):
         0,
         'test.sample:Service',
     ])
-    gt = eventlet.spawn(main, args)
-    eventlet.sleep(1)
+    gt = gevent.spawn(main, args)
+    gevent.sleep(1)
 
     # make sure service launches ok
     with ClusterRpcProxy(rabbit_config) as proxy:
@@ -118,7 +118,7 @@ def recv_until_prompt(sock):
 def test_backdoor():
     runner = object()
     green_socket, gt = setup_backdoor(runner, 0)
-    eventlet.sleep(0)  # give backdoor a chance to spawn
+    gevent.sleep(0)  # give backdoor a chance to spawn
     socket_name = green_socket.fd.getsockname()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(socket_name)
@@ -136,21 +136,21 @@ def test_backdoor():
 
 
 def test_stopping(rabbit_config):
-    with patch('nameko.cli.run.eventlet') as mock_eventlet:
+    with patch('nameko.cli.run.gevent') as mock_gevent:
         # this is the service "runlet"
-        mock_eventlet.spawn().wait.side_effect = [
+        mock_gevent.spawn().wait.side_effect = [
             KeyboardInterrupt,
             None,  # second wait, after stop() which returns normally
         ]
-        gt = eventlet.spawn(run, [Service], rabbit_config)
+        gt = gevent.spawn(run, [Service], rabbit_config)
         gt.wait()
         # should complete
 
 
 def test_stopping_twice(rabbit_config):
-    with patch('nameko.cli.run.eventlet') as mock_eventlet:
+    with patch('nameko.cli.run.gevent') as mock_gevent:
         # this is the service "runlet"
-        mock_eventlet.spawn().wait.side_effect = [
+        mock_gevent.spawn().wait.side_effect = [
             KeyboardInterrupt,
             None,  # second wait, after stop() which returns normally
         ]
@@ -159,35 +159,35 @@ def test_stopping_twice(rabbit_config):
             runner.stop.side_effect = KeyboardInterrupt
             runner.kill.return_value = None
 
-            gt = eventlet.spawn(run, [Service], rabbit_config)
+            gt = gevent.spawn(run, [Service], rabbit_config)
             gt.wait()
 
 
 def test_os_error_for_signal(rabbit_config):
-    with patch('nameko.cli.run.eventlet') as mock_eventlet:
+    with patch('nameko.cli.run.gevent') as mock_gevent:
         # this is the service "runlet"
-        mock_eventlet.spawn().wait.side_effect = [
+        mock_gevent.spawn().wait.side_effect = [
             OSError(errno.EINTR, ''),
             None,  # second wait, after stop() which returns normally
         ]
         # don't actually start the service -- we're not firing a real signal
         # so the signal handler won't stop it again
         with patch.object(ServiceRunner, 'start'):
-            gt = eventlet.spawn(run, [Service], rabbit_config)
+            gt = gevent.spawn(run, [Service], rabbit_config)
             gt.wait()
         # should complete
 
 
 def test_other_errors_propagate(rabbit_config):
-    with patch('nameko.cli.run.eventlet') as mock_eventlet:
+    with patch('nameko.cli.run.gevent') as mock_gevent:
         # this is the service "runlet"
-        mock_eventlet.spawn().wait.side_effect = [
+        mock_gevent.spawn().wait.side_effect = [
             OSError(0, ''),
             None,  # second wait, after stop() which returns normally
         ]
         # don't actually start the service -- there's no real OSError that
         # would otherwise kill the whole process
         with patch.object(ServiceRunner, 'start'):
-            gt = eventlet.spawn(run, [Service], rabbit_config)
+            gt = gevent.spawn(run, [Service], rabbit_config)
             with pytest.raises(OSError):
                 gt.wait()

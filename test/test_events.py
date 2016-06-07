@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-import eventlet
+import gevent
 import pytest
 from mock import Mock, patch
 
@@ -349,9 +349,9 @@ def test_service_pooled_events(rabbit_manager, rabbit_config,
                            properties=dict(content_type='application/json'))
 
     # a total of two events should be received
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 2:
-            eventlet.sleep()
+            gevent.sleep()
 
     # exactly one instance of each service should have been created
     # each should have received an event
@@ -384,9 +384,9 @@ def test_service_pooled_events_multiple_handlers(
                            properties=dict(content_type='application/json'))
 
     # each handler (3 of them) of the two services should have received the evt
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 2:
-            eventlet.sleep()
+            gevent.sleep()
 
     # two worker instances would have been created to deal with the handling
     assert len(services['double']) == 2
@@ -408,9 +408,9 @@ def test_singleton_events(rabbit_manager, rabbit_config, start_containers):
                            properties=dict(content_type='application/json'))
 
     # exactly one event should have been received
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 1:
-            eventlet.sleep()
+            gevent.sleep()
 
     # one lucky handler should have received the event
     assert len(services) == 1
@@ -439,9 +439,9 @@ def test_broadcast_events(rabbit_manager, rabbit_config, start_containers):
                            properties=dict(content_type='application/json'))
 
     # a total of three events should be received
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 3:
-            eventlet.sleep()
+            gevent.sleep()
 
     # all three handlers should receive the event, but they're only of two
     # different types
@@ -479,9 +479,9 @@ def test_requeue_on_error(rabbit_manager, rabbit_config, start_containers):
 
     # the event will be received multiple times as it gets requeued and then
     # consumed again
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 2:
-            eventlet.sleep()
+            gevent.sleep()
 
     # multiple instances of the service should have been instantiated
     assert len(services['requeue']) > 1
@@ -511,9 +511,9 @@ def test_reliable_delivery(rabbit_manager, rabbit_config, start_containers):
                            properties=dict(content_type='application/json'))
 
     # wait for the event to be received
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) == 0:
-            eventlet.sleep()
+            gevent.sleep()
     assert events == ["msg_1"]
 
     # stop container, check queue still exists, without consumers
@@ -535,9 +535,9 @@ def test_reliable_delivery(rabbit_manager, rabbit_config, start_containers):
     (container,) = start_containers(ServicePoolHandler, ('service-pool',))
 
     # wait for the service to collect the pending event
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 2:
-            eventlet.sleep()
+            gevent.sleep()
     assert len(events) == 2
     assert events == ["msg_1", "msg_2"]
 
@@ -567,9 +567,9 @@ def test_unreliable_delivery(rabbit_manager, rabbit_config, start_containers):
                            properties=dict(content_type='application/json'))
 
     # wait for it to arrive in both services
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 2:
-            eventlet.sleep()
+            gevent.sleep()
     assert events == ["msg_1", "msg_1"]
 
     # test that the unreliable service received it
@@ -597,9 +597,9 @@ def test_unreliable_delivery(rabbit_manager, rabbit_config, start_containers):
                            properties=dict(content_type='application/json'))
 
     # wait for it to arrive in both services
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(events) < 5:
-            eventlet.sleep()
+            gevent.sleep()
 
     # verify that the "unreliable" handler didn't receive the message sent
     # while it wasn't running
@@ -618,9 +618,9 @@ def test_custom_event_handler(rabbit_manager, rabbit_config, start_containers):
     dispatch('srcservice',  "eventtype", payload)
 
     # wait for it to arrive
-    with eventlet.timeout.Timeout(EVENTS_TIMEOUT):
+    with gevent.timeout.Timeout(EVENTS_TIMEOUT):
         while len(CustomEventHandler._calls) < 1:
-            eventlet.sleep()
+            gevent.sleep()
     assert CustomEventHandler._calls[0].payload == payload
 
 
