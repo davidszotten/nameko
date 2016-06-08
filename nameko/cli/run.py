@@ -30,8 +30,6 @@ logger = logging.getLogger(__name__)
 
 MISSING_MODULE_TEMPLATE = "^No module named '?{}'?$"
 
-gevent.Greenlet.wait = gevent.Greenlet.get
-
 
 def is_type(obj):
     return isinstance(obj, type)
