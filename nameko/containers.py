@@ -475,7 +475,9 @@ class ServiceContainer(object):
         self._protected_threads.discard(gt)
 
         try:
-            gt.get()
+            # TODO:
+            if isinstance(gt.get(), GreenletExit):
+                _log.debug('%s thread killed by container', self)
 
         except GreenletExit:
             # we don't care much about threads killed by the container

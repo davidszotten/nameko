@@ -13,7 +13,7 @@ def running_backdoor():
     runner = object()
     green_socket, gt = setup_backdoor(runner, 0)
     gevent.sleep(0)  # give backdoor a chance to spawn
-    socket_name = green_socket.fd.getsockname()
+    socket_name = green_socket.getsockname()
     return socket_name
 
 

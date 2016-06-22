@@ -18,8 +18,9 @@ import sys
 import yaml
 
 import gevent
-from gevent import backdoor
+from gevent.backdoor import BackdoorServer
 
+from nameko.compat import listen
 from nameko.constants import AMQP_URI_CONFIG_KEY
 from nameko.exceptions import CommandError
 from nameko.extensions import ENTRYPOINT_EXTENSIONS_ATTR
@@ -103,15 +104,17 @@ def setup_backdoor(runner, port):
         raise RuntimeError(
             'This would kill your service, not close the backdoor. To exit, '
             'use ctrl-c.')
-    socket = gevent.listen(('localhost', port))
-    gt = gevent.spawn(
-        backdoor.backdoor_server,
+
+    socket = listen(('localhost', port))
+    server = BackdoorServer(
         socket,
         locals={
             'runner': runner,
             'quit': _bad_call,
             'exit': _bad_call,
-        })
+        }
+    )
+    gt = gevent.spawn(server.serve_forever)
     return socket, gt
 
 
@@ -123,7 +126,8 @@ def run(services, config, backdoor_port=None):
     def shutdown(signum, frame):
         # signal handlers are run by the MAINLOOP and cannot use gevent
         # primitives, so we have to call `stop` in a greenlet
-        gevent.spawn_n(service_runner.stop)
+        # TODO: spawn_n?
+        gevent.spawn(service_runner.stop)
 
     signal.signal(signal.SIGTERM, shutdown)
 

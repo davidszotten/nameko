@@ -1,12 +1,12 @@
 from collections import namedtuple
 from functools import partial
 import re
-import gevent
 from gevent import wsgi
 from werkzeug.exceptions import HTTPException
 from werkzeug.routing import Map
 from werkzeug.wrappers import Request
 
+from nameko import compat
 from nameko.constants import WEB_SERVER_CONFIG_KEY
 from nameko.exceptions import ConfigurationError
 from nameko.extensions import ProviderCollector, SharedExtension
@@ -48,9 +48,11 @@ class WebServer(ProviderCollector, SharedExtension):
     def run(self):
         while self._is_accepting:
             sock, addr = self._sock.accept()
-            sock.settimeout(self._serv.socket_timeout)
+            # TODO
+            #  sock.settimeout(self._serv.socket_timeout)
             self.container.spawn_managed_thread(
-                partial(self._serv.process_request, (sock, addr)),
+                #  partial(self._serv.process_request, (sock, addr)),
+                partial(self._serv.handle, sock, addr),
                 protected=True
             )
 
@@ -58,11 +60,13 @@ class WebServer(ProviderCollector, SharedExtension):
         if not self._starting:
             self._starting = True
             self._wsgi_app = WsgiApp(self)
-            self._sock = gevent.listen(self.bind_addr)
-            self._serv = wsgi.Server(self._sock,
-                                     self._sock.getsockname(),
-                                     self._wsgi_app,
-                                     debug=False)
+            self._sock = compat.listen(self.bind_addr)
+            self._serv = wsgi.WSGIServer(
+                listener=self._sock,
+                #  address=self._sock.getsockname(),
+                application=self._wsgi_app,
+                debug=False,
+            )
             self._gt = self.container.spawn_managed_thread(
                 self.run, protected=True)
 

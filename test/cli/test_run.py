@@ -119,7 +119,7 @@ def test_backdoor():
     runner = object()
     green_socket, gt = setup_backdoor(runner, 0)
     gevent.sleep(0)  # give backdoor a chance to spawn
-    socket_name = green_socket.fd.getsockname()
+    socket_name = green_socket.getsockname()
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect(socket_name)
     recv_until_prompt(sock)  # banner
